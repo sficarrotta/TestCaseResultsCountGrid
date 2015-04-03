@@ -5,18 +5,106 @@ Ext.define('CustomApp', {
 
     launch: function() {
         this._GridRecords = [];
-        this._loadTestCases();
+        this._myGrid = undefined;
+        this._boxcontainer = Ext.create('Ext.form.Panel', {
+            title: 'Grid Filters',
+            layout: { type: 'hbox'},
+            width: '95%',
+            bodyPadding: 10
+        });
+        this._loadMethods();
     },
     
+    _loadMethods: function() {
+        this._methodField = this.add({
+            padding : 5,
+            fieldLabel: 'Method',
+            model: 'TestCase',
+            field: 'Method',
+            xtype: 'rallyfieldvaluecombobox',
+            allowClear: true,
+            clearText: '-- Clear Filter --',
+            emptyText: 'Filter by Method...',
+            listeners: {
+                ready: this._onMethodBoxReady,
+                change: this._onChange,
+                scope: this
+            },
+            scope: this
+        });
+    },
+    
+    _onMethodBoxReady: function(combo) {
+        combo.getStore().getAt(0).set('formattedName', '-- Clear Filter --');
+        this._boxcontainer.add(this._methodField);
+        this._loadTestFolders();
+    },
+    
+    _onChange: function() {
+        if (this._myGrid) {
+            var store = this._myGrid.getStore();
+            store.clearFilter(!0);
+            this._myGrid.destroy();
+            this._GridRecords = [];
+            this._loadTestCases();
+        }
+        else {
+            console.log("grid not created yet");
+        }
+    },
+    
+    _loadTestFolders: function() {
+        console.log("loading folders");
+        this._testFolderField = this.add({
+            storeConfig: {
+                autoLoad: true,
+                model: 'TestFolder',
+                remoteFilter: true
+            },
+            allowNoEntry: true,
+            noEntryValue: '',
+            padding : 5,
+            fieldLabel: 'Test Folder',
+            xtype: 'rallycombobox',
+            field: 'TestFolder',
+            listeners: {
+                ready: this._onTestFolderBoxReady,
+                change: this._onChange,
+                scope: this
+            },
+            scope: this
+        });
+    },
+    
+    _onTestFolderBoxReady: function() {
+        this._boxcontainer.add(this._testFolderField);
+        
+        // all widgets added, so put the container on the gui
+        this.add(this._boxcontainer); 
+        this._loadTestCases();
+    },
+
     _loadTestCases: function() {
         Ext.create('Rally.data.WsapiDataStore', {
             model: 'TestCase',
             autoLoad: true,
-            filters: [{
-                property: 'Type',
-                operator: 'Contains',
-                value: 'Regression'
-            }],
+            filters: [
+                {
+                    property: 'Type',
+                    operator: 'Contains',
+                    value: 'Regression'
+                },
+                {
+                    property: 'Method',
+                    operator: '=',
+                    value: this._methodField.getValue()
+                },
+                {
+                    property: 'TestFolder',
+                    operator: '=',
+                    value: this._testFolderField.getValue() 
+                }
+            ],
             listeners: {
                 load: function(store, records, success) {
                     this._onTestCasesLoaded(store, records);
@@ -24,7 +112,7 @@ Ext.define('CustomApp', {
                 scope: this
             },
 
-            fetch: ['Name', '_ref', 'ObjectID', 'FormattedID', 'Method', 'Type', 'TestCaseResult']
+            fetch: ['Name', '_ref', 'ObjectID', 'FormattedID', 'Method', 'Type', 'TestCaseResult', 'TestFolder']
         });
     },
     
@@ -93,13 +181,16 @@ Ext.define('CustomApp', {
     
     _createGrid: function() {
         var me = this;
-        console.log("_createGrid: gridrec: ", me._GridRecords);
-            this.add({
-                title: 'Regression Test Case Results Counts',
-                xtype: 'rallygrid',
-                store: Ext.create('Rally.data.custom.Store', {
-                 data: me._GridRecords,
-                 height: '98%'
+        this._myGrid = this.add({
+            title: 'Regression Test Case Results Counts',
+            xtype: 'rallygrid',
+            pagingToolbarCfg: {
+               pageSizes: [50, 100, 200, 500, 1000]
+            },
+            store: Ext.create('Rally.data.custom.Store', {
+             data: me._GridRecords,
+             model: 'TestCase',
+             height: '98%'
             }),
             columnCfgs: [
                 {

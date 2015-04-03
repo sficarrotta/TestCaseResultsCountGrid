@@ -2,7 +2,10 @@ TestCaseSummaryGrid
 =========================
 
 ## Overview
-This app displays pass/fail counts for Test Cases of type Regression
+This app displays pass/fail counts for Test Cases of type Regression. 
+
+## Screen Shot
+![Test Case Results Count Grid](https://raw.github.com/sficarrotta/TestCaseResultsCountGrid/master/TestCaseRunCounts.png)
 
 
 ## License
